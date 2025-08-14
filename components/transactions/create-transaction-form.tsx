@@ -7,33 +7,36 @@ import { TransactionInfoStep } from "./transaction-info-step"
 import { CustomerCodeFormData, TransactionInfoFormData } from "@/lib/validations"
 import { CheckCircle, Circle } from 'lucide-react'
 import { cn } from "@/lib/utils"
+import { useCreateTransaction } from "@/hooks/use-loyalty-data"
+import { CreateTransactionData, CustomerLookupResponse } from "@/lib/types"
 
 export function CreateTransactionForm() {
   const [currentStep, setCurrentStep] = useState(1)
-  const [customerCodeData, setCustomerCodeData] = useState<CustomerCodeFormData | null>(null)
+  const [customerCodeData, setCustomerCodeData] = useState<CustomerCodeFormData & { customerData?: CustomerLookupResponse } | null>(null)
   const [transactionInfoData, setTransactionInfoData] = useState<TransactionInfoFormData | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  const createTransactionMutation = useCreateTransaction()
 
-  const handleCustomerCodeSubmit = (data: CustomerCodeFormData) => {
+  const handleCustomerCodeSubmit = (data: CustomerCodeFormData & { customerData?: CustomerLookupResponse }) => {
     setCustomerCodeData(data)
     setCurrentStep(2)
   }
 
   const handleTransactionInfoSubmit = async (data: TransactionInfoFormData) => {
-    setIsSubmitting(true)
-    setTransactionInfoData(data)
+    if (!customerCodeData?.customerCode) {
+      console.error('Customer code is required')
+      return
+    }
 
-    const finalPayload = {
-      customerCode: customerCodeData?.customerCode,
-      ...data
+    const transactionData: CreateTransactionData = {
+      customerCode: customerCodeData.customerCode,
+      type: data.type as 'earn' | 'redeem',
+      amount: data.amount,
+      description: data.description || '',
     }
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      console.log('Final Transaction Payload:', finalPayload)
-      alert('Transaction created successfully!')
+      await createTransactionMutation.mutateAsync(transactionData)
       
       // Reset form after successful submission
       setCurrentStep(1)
@@ -42,9 +45,7 @@ export function CreateTransactionForm() {
 
     } catch (error) {
       console.error('Error creating transaction:', error)
-      alert('Error creating transaction. Please try again.')
-    } finally {
-      setIsSubmitting(false)
+      // Error handling is done in the hook with toast notifications
     }
   }
 
@@ -81,14 +82,17 @@ export function CreateTransactionForm() {
 
         {/* Form Steps */}
         {currentStep === 1 && (
-          <CustomerCodeStep onNext={handleCustomerCodeSubmit} defaultValues={customerCodeData || undefined} />
+                    <CustomerCodeStep 
+            onNext={handleCustomerCodeSubmit} 
+            defaultValues={customerCodeData ? { customerCode: customerCodeData.customerCode } : undefined} 
+          />
         )}
         {currentStep === 2 && (
-          <TransactionInfoStep
-            onBack={() => setCurrentStep(1)}
-            onSubmit={handleTransactionInfoSubmit}
-            isSubmitting={isSubmitting}
+                    <TransactionInfoStep 
+            onNext={handleTransactionInfoSubmit} 
+            onBack={() => setCurrentStep(1)} 
             defaultValues={transactionInfoData || undefined}
+            customerData={customerCodeData?.customerData}
           />
         )}
       </CardContent>

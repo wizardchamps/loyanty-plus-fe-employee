@@ -49,9 +49,17 @@ export const customerCodeSchema = yup.object({
     .max(50, 'Customer code must be less than 50 characters')
 })
 
-// Removed TransactionType enum as it's no longer needed
+// Transaction type enum
+export enum TransactionType {
+  EARN = 'earn',
+  REDEEM = 'redeem'
+}
 
 export const transactionInfoSchema = yup.object({
+  type: yup
+    .string()
+    .oneOf(Object.values(TransactionType), 'Invalid transaction type')
+    .required('Transaction type is required'),
   amount: yup
     .number()
     .required('Amount is required')
@@ -60,11 +68,11 @@ export const transactionInfoSchema = yup.object({
   description: yup
     .string()
     .max(250, 'Description must be less than 250 characters')
-    .nullable(),
-  // transactionType field removed
+    .required('Description is required'),
   externalTransactionId: yup
     .string()
     .max(100, 'External transaction ID must be less than 100 characters')
+    .optional()
     .nullable(),
 })
 

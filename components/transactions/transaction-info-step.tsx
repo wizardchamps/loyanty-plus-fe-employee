@@ -9,30 +9,61 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 // Removed Select imports
-import { transactionInfoSchema, type TransactionInfoFormData } from "@/lib/validations" // Removed TransactionType import
+import { transactionInfoSchema, type TransactionInfoFormData } from "@/lib/validations"
+import { CustomerLookupResponse } from "@/lib/types"
 
 interface TransactionInfoStepProps {
   onBack: () => void
-  onSubmit: (data: TransactionInfoFormData) => void
-  isSubmitting: boolean
+  onNext: (data: TransactionInfoFormData) => void
+  isSubmitting?: boolean
   defaultValues?: TransactionInfoFormData
+  customerData?: CustomerLookupResponse
 }
 
-export function TransactionInfoStep({ onBack, onSubmit, isSubmitting, defaultValues }: TransactionInfoStepProps) {
+export function TransactionInfoStep({ onBack, onNext, isSubmitting = false, defaultValues, customerData }: TransactionInfoStepProps) {
   const {
     register,
     handleSubmit,
-    // Removed setValue, watch as transactionType is gone
     formState: { errors }
   } = useForm<TransactionInfoFormData>({
-    resolver: yupResolver(transactionInfoSchema),
+    resolver: yupResolver(transactionInfoSchema) as any,
     defaultValues: defaultValues
   })
+
+  const handleNext = (data: TransactionInfoFormData) => {
+    onNext(data)
+  }
 
   // Removed transactionType watch
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <div className="space-y-6">
+      {/* Customer Information Display */}
+      {customerData && (
+        <div className="bg-muted/50 p-4 rounded-lg border">
+          <h3 className="font-semibold text-sm mb-3">Customer Information</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+            <div>
+              <span className="font-medium">Name:</span>
+              <p className="text-muted-foreground">{customerData.customer.fullName}</p>
+            </div>
+            <div>
+              <span className="font-medium">Store Code:</span>
+              <p className="text-muted-foreground">{customerData.membership.userStoreCode}</p>
+            </div>
+            <div>
+              <span className="font-medium">Phone:</span>
+              <p className="text-muted-foreground">{customerData.customer.phoneNumber}</p>
+            </div>
+            <div>
+              <span className="font-medium">Points Balance:</span>
+              <p className="text-muted-foreground">{customerData.membership.pointsBalance} points</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit(handleNext as any)} className="space-y-6">
       {/* Amount */}
       <div className="space-y-2">
         <Label htmlFor="amount" className="flex items-center gap-2">
@@ -150,5 +181,6 @@ export function TransactionInfoStep({ onBack, onSubmit, isSubmitting, defaultVal
         </Button>
       </div>
     </form>
+    </div>
   )
 }
